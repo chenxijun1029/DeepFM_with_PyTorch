@@ -48,7 +48,7 @@ class DeepFM(nn.Module):
         self.embedding_size = embedding_size
         self.hidden_dims = hidden_dims
         self.num_classes = num_classes
-        self.dtype = torch.int32
+        self.dtype = torch.long
         self.bias = torch.nn.Parameter(torch.randn(1))
         """
             check if use cuda
@@ -89,11 +89,11 @@ class DeepFM(nn.Module):
         """
             fm part
         """
-        fm_first_order_emb_arr = [(torch.sum(emb(Xi[:, i, :]), 1).t() * \
+        fm_first_order_emb_arr = [(torch.sum(emb(Xi[:, i], 1).t() * \
                                    Xv[:, i]).t() for i, emb in enumerate(self.fm_first_order_embeddings)]
         fm_first_order = torch.cat(fm_first_order_emb_arr, 1)
         # use 2xy = (x+y)^2 - x^2 - y^2 reduce calculation
-        fm_second_order_emb_arr = [(torch.sum(emb(Xi[:, i, :]), 1).t() * \
+        fm_second_order_emb_arr = [(torch.sum(emb(Xi[:, i], 1).t() * \
                                     Xv[:, i]).t() for i, emb in enumerate(self.fm_second_order_embeddings)]
         fm_sum_second_order_emb = sum(fm_second_order_emb_arr)
         fm_sum_second_order_emb_square = fm_sum_second_order_emb * \
@@ -120,9 +120,9 @@ class DeepFM(nn.Module):
                     torch.sum(fm_second_order, 1) + torch.sum(deep_out, 1) + self.bias
         return total_sum
 
-    def train(self, loader_train, loader_val, optimizer, epochs=1, verbose=False, print_every=100):
+    def fit(self, loader_train, loader_val, optimizer, epochs=1, verbose=False, print_every=100):
         """
-        Training a model.
+        Training a model and valid accuracy.
 
         Inputs:
         - loader_train: I
@@ -140,10 +140,9 @@ class DeepFM(nn.Module):
 
         for _ in range(epochs):
             for t, (xi, xv, y) in enumerate(loader_train):
-                model.train()
                 xi = xi.to(device=self.device, dtype=self.dtype)
                 xv = xv.to(device=self.device, dtype=self.dtype)
-                y = y.to(device=self.device, dtype=torch.long)
+                y = y.to(device=self.device, dtype=self.dtype)
                 
                 total = model(xi, xv)
                 loss = criterion(total, y)
@@ -168,7 +167,7 @@ class DeepFM(nn.Module):
             for xi, xv, y in loader:
                 xi = xi.to(device=self.device, dtype=self.dtype)  # move to device, e.g. GPU
                 xv = xv.to(device=self.device, dtype=self.dtype)
-                y = y.to(device=self.device, dtype=torch.long)
+                y = y.to(device=self.device, dtype=self.dtype)
                 total = model(xi, xv)
                 preds = (F.sigmoid(total) > 0.5)
                 num_correct += (preds == y).sum()
