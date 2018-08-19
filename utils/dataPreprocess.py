@@ -155,4 +155,4 @@ def preprocess(datadir, outdir):
                 out.write(','.join([continous_vals, categorial_vals]) + '\n')
 
 if __name__ == "__main__":
-    preprocess('./data/raw', './data')
+    preprocess('../data/raw', '../data')
