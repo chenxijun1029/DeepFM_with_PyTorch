@@ -1,3 +1,4 @@
+import torch
 from torch.utils.data import Dataset
 import pandas as pd
 import numpy as np
@@ -24,17 +25,17 @@ class CriteoDataset(Dataset):
 
         if self.train:
             data = pd.read_csv(os.path.join(root, 'train.txt'))
-            self.train_data = data.iloc[:, :-1]
-            self.target = data.iloc[:, -1]
+            self.train_data = data.iloc[:, :-1].values
+            self.target = data.iloc[:, -1].values
         else:
             data = pd.read_csv(os.path.join(root, 'test.txt'))
-            self.test_data = data.iloc[:, :-1]
+            self.test_data = data.iloc[:, :-1].values
     
     def __getitem__(self, idx):
         if self.train:
-            dataI, targetI = self.train_data.iloc[idx, :], self.target.iloc[idx, :]
-            Xi = dataI.astype(np.int32)
-            Xv = np.ones_like(dataI)
+            dataI, targetI = self.train_data[idx, :], self.target[idx]
+            Xi = torch.from_numpy(dataI.astype(np.int32))
+            Xv = torch.from_numpy(np.ones_like(dataI))
             return Xi, Xv, targetI
         else:
             dataI = self.test_data.iloc[idx, :]
