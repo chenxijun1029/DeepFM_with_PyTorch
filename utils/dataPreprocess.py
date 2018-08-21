@@ -51,7 +51,7 @@ class CategoryDictGenerator:
         return res
 
     def dicts_sizes(self):
-        return [len(self.dicts[i]) for i in range(0, self.num_feature)]
+        return [len(self.dicts[idx]) for idx in range(0, self.num_feature)]
 
 
 class ContinuousFeatureGenerator:
