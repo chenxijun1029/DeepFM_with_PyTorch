@@ -21,6 +21,8 @@ loader_val = DataLoader(val_data, batch_size=100,
 
 feature_sizes = np.loadtxt('./data/feature_sizes.txt', delimiter=',')
 feature_sizes = [int(x) for x in feature_sizes]
-model = DeepFM(feature_sizes)
+print(feature_sizes)
+
+model = DeepFM(feature_sizes, use_cuda=False)
 optimizer = optim.Adam(model.parameters(), lr=1e-4, weight_decay=0.0)
 model.fit(loader_train, loader_val, optimizer, epochs=5, verbose=True)

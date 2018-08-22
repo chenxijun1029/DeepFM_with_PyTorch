@@ -83,18 +83,24 @@ class DeepFM(nn.Module):
         Forward process of network. 
 
         Inputs:
-        - Xi: A tensor of input's index, shape of (N, D, 1)
-        - Xv: A tensor of input's value, shape of (N, D, 1)
+        - Xi: A tensor of input's index, shape of (N, field_size, 1)
+        - Xv: A tensor of input's value, shape of (N, field_size, 1)
         """
         """
             fm part
         """
-        fm_first_order_emb_arr = [(torch.sum(emb(Xi[:, i], 1).t() * \
-                                   Xv[:, i]).t() for i, emb in enumerate(self.fm_first_order_embeddings)]
+        emb = self.fm_first_order_embeddings[20]
+        print(Xi.size())
+        for num in Xi[:, 20, :][0]:
+            if num > self.feature_sizes[20]:
+                print("index out")
+
+        fm_first_order_emb_arr = [(torch.sum(emb(Xi[:, i, :]), 1).t() * Xv[:, i]).t() for i, emb in enumerate(self.fm_first_order_embeddings)]
+        # fm_first_order_emb_arr = [(emb(Xi[:, i]) * Xv[:, i])  for i, emb in enumerate(self.fm_first_order_embeddings)]
         fm_first_order = torch.cat(fm_first_order_emb_arr, 1)
         # use 2xy = (x+y)^2 - x^2 - y^2 reduce calculation
-        fm_second_order_emb_arr = [(torch.sum(emb(Xi[:, i], 1).t() * \
-                                    Xv[:, i]).t() for i, emb in enumerate(self.fm_second_order_embeddings)]
+        fm_second_order_emb_arr = [(torch.sum(emb(Xi[:, i, :]), 1).t() * Xv[:, i]).t() for i, emb in enumerate(self.fm_second_order_embeddings)]
+        # fm_second_order_emb_arr = [(emb(Xi[:, i]) * Xv[:, i]) for i, emb in enumerate(self.fm_second_order_embeddings)]
         fm_sum_second_order_emb = sum(fm_second_order_emb_arr)
         fm_sum_second_order_emb_square = fm_sum_second_order_emb * \
             fm_sum_second_order_emb  # (x+y)^2
@@ -141,7 +147,7 @@ class DeepFM(nn.Module):
         for _ in range(epochs):
             for t, (xi, xv, y) in enumerate(loader_train):
                 xi = xi.to(device=self.device, dtype=self.dtype)
-                xv = xv.to(device=self.device, dtype=self.dtype)
+                xv = xv.to(device=self.device, dtype=torch.float)
                 y = y.to(device=self.device, dtype=self.dtype)
                 
                 total = model(xi, xv)

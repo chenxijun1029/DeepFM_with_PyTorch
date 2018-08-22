@@ -111,7 +111,6 @@ def preprocess(datadir, outdir):
     random.seed(0)
 
     # Saving the data used for training.
-   
     with open(os.path.join(outdir, 'train.txt'), 'w') as out_train:
         with open(os.path.join(datadir, 'train.txt'), 'r') as f:
             for line in f:
