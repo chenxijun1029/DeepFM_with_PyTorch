@@ -19,12 +19,11 @@ A PyTorch implementation of DeepFM for CTR prediction problem.
 
 ## Reference
 
--  https://github.com/nzc/dnn_ctr
+- https://github.com/nzc/dnn_ctr
 
 - https://github.com/PaddlePaddle/models/tree/develop/deep_fm
 
-- DeepFM: A Factorization-Machine based Neural Network for CTR Prediction,
-    Huifeng Guo, Ruiming Tang, Yunming Yey, Zhenguo Li, Xiuqiang He.
+- DeepFM: A Factorization-Machine based Neural Network for CTR         Prediction, Huifeng Guo, Ruiming Tang, Yunming Yey, Zhenguo Li, Xiuqiang He.
 
 
 
