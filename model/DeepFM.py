@@ -119,15 +119,18 @@ class DeepFM(nn.Module):
         return total_sum
 
     def l2_reg(self):
-        reg_loss = 0
-        for param in self.parameters():
-            reg_loss += torch.norm(param)
+        reg_loss = torch.zeros(1, dtype=torch.float32, requires_grad=True)
+        for varname, param in self.named_parameters():
+            if 'bias' not in varname:
+                reg_loss = reg_loss + torch.norm(param)
         return reg_loss
 
     def l1_reg(self):
-        reg_loss = 0
+        reg_loss = torch.zeros(1, dtype=torch.float32, requires_grad=True)
+        reg_loss = reg_loss.to(device=self.device, dtype=torch.float32)
         for varname, param in self.named_parameters():
-            reg_loss += torch.abs(param).sum()
+            if 'bias' not in varname:
+                reg_loss = reg_loss + torch.sum(torch.abs(param))
         return reg_loss
 
 
@@ -159,9 +162,9 @@ class DeepFM(nn.Module):
                 y = y.to(device=self.device, dtype=torch.float32)
                 
                 total = model(xi, xv)
-                reg = self.l1_reg()
+                reg = self.l1_reg().to(device=self.device, dtype=torch.float32)
                 err = criterion(total, y)
-                loss = err + 1e-3*reg
+                loss = err + 1e-6*reg
                 if not torch.isnan(loss):
                     optimizer.zero_grad()
                     loss.backward()

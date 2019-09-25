@@ -36,7 +36,7 @@ class CriteoDataset(Dataset):
     def __getitem__(self, idx):
         if self.train:
             dataI, targetI = self.train_data[idx, :], self.target[idx]
-            Xi = torch.cat([torch.zeros(len(self.continous_features),dtype=torch.int64), torch.tensor(dataI[self.categorial_features])], dim=0).unsqueeze(-1)
+            Xi = torch.cat([torch.zeros(len(self.continous_features),dtype=torch.int64), torch.tensor(dataI[self.categorial_features], dtype=torch.int64)], dim=0).unsqueeze(-1)
             Xv = torch.cat([torch.tensor(dataI[self.continous_features],dtype=torch.float32), torch.ones(len(self.categorial_features),dtype=torch.float32)], dim=0).type(torch.float32)
             #Xi = torch.from_numpy(dataI.astype(np.int32)).unsqueeze(-1)
             #Xv = torch.from_numpy(np.ones_like(dataI))
@@ -46,7 +46,7 @@ class CriteoDataset(Dataset):
             breakpoint()
             #Xi = torch.from_numpy(dataI.astype(np.int32)).unsqueeze(-1)
             #Xv = torch.from_numpy(np.ones_like(dataI))
-            Xi = torch.cat([torch.zeros(len(self.continous_features),dtype=torch.int64), torch.tensor(dataI[self.categorial_features])], dim=0).unsqueeze(-1)
+            Xi = torch.cat([torch.zeros(len(self.continous_features),dtype=torch.int64), torch.tensor(dataI[self.categorial_features], dtype=torch.int64)], dim=0).unsqueeze(-1)
             Xv = torch.cat([torch.tensor(dataI[self.continous_features],dtype=torch.float32), torch.ones(len(self.categorial_features),dtype=torch.float32)], dim=0)
             return Xi, Xv
 

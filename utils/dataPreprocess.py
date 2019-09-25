@@ -93,7 +93,7 @@ class ContinuousFeatureGenerator:
 # @click.command("preprocess")
 # @click.option("--datadir", type=str, help="Path to raw criteo dataset")
 # @click.option("--outdir", type=str, help="Path to save the processed data")
-def preprocess(datadir, outdir, train_file='train.txt', test_file='test_file', cutoff=200):
+def preprocess(datadir, outdir, train_file='train.txt', test_file='test_file', feature_sizes_file = 'feature_sizes.txt', cutoff=200):
     """
     All the 13 integer features are normalzied to continous values and these
     continous features are combined into one vecotr with dimension 13.
@@ -110,7 +110,7 @@ def preprocess(datadir, outdir, train_file='train.txt', test_file='test_file', c
 
     dict_sizes = dicts.dicts_sizes()
 
-    with open(os.path.join(outdir, 'feature_sizes.txt'), 'w') as feature_sizes:
+    with open(os.path.join(outdir, feature_sizes_file), 'w') as feature_sizes:
         sizes = [1] * len(continous_features) + dict_sizes
         sizes = [str(i) for i in sizes]
         feature_sizes.write(','.join(sizes))
@@ -160,5 +160,5 @@ def preprocess(datadir, outdir, train_file='train.txt', test_file='test_file', c
                 out.write(','.join([continous_vals, categorial_vals]) + '\n')
 
 if __name__ == "__main__":
-    preprocess('./data/raw', './data', train_file='train_large.txt', test_file='test_large.txt')
-    #preprocess('./data/raw', './data', train_file='train.txt', test_file='test.txt', cutoff=0)
+    #preprocess('./data/raw', './data', train_file='train_large.txt', test_file='test_large.txt', feature_sizes_file="feature_sizes_large.txt")
+    preprocess('./data/raw', './data', train_file='train.txt', test_file='test.txt', feature_sizes_file = 'feature_sizes.txt',  cutoff=0)
