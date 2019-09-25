@@ -27,8 +27,7 @@ class DeepFM(nn.Module):
     """
 
     def __init__(self, feature_sizes, embedding_size=4,
-                 hidden_dims=[32, 32, 32], 
-                 num_classes=1,
+                 hidden_dims=[200,200,200],
                  dropout=[0.5, 0.5, 0.5], 
                  
                  use_cuda=True, verbose=False):
@@ -39,8 +38,6 @@ class DeepFM(nn.Module):
         - feature_size: A list of integer giving the size of features for each field.
         - embedding_size: An integer giving size of feature embedding.
         - hidden_dims: A list of integer giving the size of each hidden layer.
-        - num_classes: An integer giving the number of classes to predict. For example,
-                    someone may rate 1,2,3,4 or 5 stars to a film.
         - batch_size: An integer giving size of instances used in each interation.
         - use_cuda: Bool, Using cuda or not
         - verbose: Bool
@@ -50,7 +47,6 @@ class DeepFM(nn.Module):
         self.feature_sizes = feature_sizes
         self.embedding_size = embedding_size
         self.hidden_dims = hidden_dims
-        self.num_classes = num_classes
         self.dtype = torch.long
         self.bias = torch.nn.Parameter(torch.zeros(1, dtype=torch.float32))
         """
@@ -107,8 +103,8 @@ class DeepFM(nn.Module):
         deep_emb = torch.flatten(xv, start_dim=1)
         deep_out = deep_emb
         for i in range(1,len(self.hidden_dims) + 1):
-            deep_out = F.relu(getattr(self, 'linear_' + str(i))(deep_out))
-            deep_out = getattr(self, 'batchNorm_' + str(i))(deep_out)
+            deep_out = getattr(self, 'linear_' + str(i))(deep_out)
+            deep_out = F.relu(getattr(self, 'batchNorm_' + str(i))(deep_out))
             deep_out = getattr(self, 'dropout_' + str(i))(deep_out)
 
         """
@@ -151,8 +147,6 @@ class DeepFM(nn.Module):
                     optimizer.zero_grad()
                     loss.backward()
                     optimizer.step()
-                else:
-                    breakpoint()
 
                 if verbose and t % print_every == 0:
                     print('Epoch: %d, Iteration %d, loss = %.4f' % (epoch, t, loss.item()))
@@ -184,7 +178,7 @@ class DeepFM(nn.Module):
                     self.avg_acc = acc
                 else:
                     self.avg_acc = 0.9 * self.avg_acc + 0.1 * acc
-                print('Got %d / %d correct (%.2f%%), avg_acc=%.2f%%' % (num_correct, num_samples, 100 * acc, self.avg_acc))
+                print('Got %d / %d correct (%.2f%%), avg_acc=%.2f%%' % (num_correct, num_samples, 100 * acc, 100 * self.avg_acc))
             except ZeroDivisionError as e:
                 print(e)
                 return

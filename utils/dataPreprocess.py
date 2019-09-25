@@ -31,7 +31,8 @@ class CategoryDictGenerator:
     def build(self, datafile, categorial_features, cutoff=0):
         with open(datafile, 'r') as f:
             for line in f:
-                features = line.rstrip('\n').split('\t')
+                data_fields = line.rstrip('\n').split('\t')
+                features = data_fields[1:]
                 for i in range(0, self.num_feature):
                     if features[categorial_features[i]] != '':
                         self.dicts[i][features[categorial_features[i]]] += 1
@@ -151,5 +152,5 @@ def preprocess(datadir, outdir, train_file='train.txt', test_file='test_file', c
                 out.write(','.join([continous_vals, categorial_vals]) + '\n')
 
 if __name__ == "__main__":
-    preprocess('./data/raw', './data', train_file='train_large.txt', test_file='test_large.txt')
-    #preprocess('./data/raw', './data', train_file='train.txt', test_file='test.txt', cutoff=0)
+    #preprocess('./data/raw', './data', train_file='train_large.txt', test_file='test_large.txt')
+    preprocess('./data/raw', './data', train_file='train.txt', test_file='test.txt', cutoff=0)
