@@ -27,7 +27,10 @@ class DeepFM(nn.Module):
     """
 
     def __init__(self, feature_sizes, embedding_size=4,
-                 hidden_dims=[32, 32], num_classes=10, dropout=[0.5, 0.5], 
+                 hidden_dims=[32, 32, 32], 
+                 num_classes=1,
+                 dropout=[0.5, 0.5, 0.5], 
+                 
                  use_cuda=True, verbose=False):
         """
         Initialize a new network
@@ -49,7 +52,7 @@ class DeepFM(nn.Module):
         self.hidden_dims = hidden_dims
         self.num_classes = num_classes
         self.dtype = torch.long
-        self.bias = torch.nn.Parameter(torch.randn(1))
+        self.bias = torch.nn.Parameter(torch.zeros(1, dtype=torch.float32))
         """
             check if use cuda
         """
@@ -67,16 +70,11 @@ class DeepFM(nn.Module):
         """
             init deep part
         """
-        all_dims = [self.field_size * self.embedding_size] + \
-            self.hidden_dims + [self.num_classes]
+        all_dims = [self.field_size * self.embedding_size] + self.hidden_dims
         for i in range(1, len(hidden_dims) + 1):
-            setattr(self, 'linear_'+str(i),
-                    nn.Linear(all_dims[i-1], all_dims[i]))
-            # nn.init.kaiming_normal_(self.fc1.weight)
-            setattr(self, 'batchNorm_' + str(i),
-                    nn.BatchNorm1d(all_dims[i]))
-            setattr(self, 'dropout_'+str(i),
-                    nn.Dropout(dropout[i-1]))
+            setattr(self, 'linear_'+str(i), nn.Linear(all_dims[i-1], all_dims[i]))
+            setattr(self, 'batchNorm_' + str(i), nn.BatchNorm1d(all_dims[i]))
+            setattr(self, 'dropout_'+str(i), nn.Dropout(dropout[i-1]))
 
     def forward(self, Xi, Xv):
         """
@@ -89,45 +87,36 @@ class DeepFM(nn.Module):
         """
             fm part
         """
-        emb = self.fm_first_order_embeddings[20]
-        print(Xi.size())
-        for num in Xi[:, 20, :][0]:
-            if num > self.feature_sizes[20]:
-                print("index out", num, self.feature_sizes[20])
 
-        try:
-            fm_first_order_emb_arr = [(torch.sum(emb(Xi[:, i, :]), 1).t() * Xv[:, i]).t() for i, emb in enumerate(self.fm_first_order_embeddings)]
-            # fm_first_order_emb_arr = [(emb(Xi[:, i]) * Xv[:, i])  for i, emb in enumerate(self.fm_first_order_embeddings)]
-            fm_first_order = torch.cat(fm_first_order_emb_arr, 1)
-            # use 2xy = (x+y)^2 - x^2 - y^2 reduce calculation
-            fm_second_order_emb_arr = [(torch.sum(emb(Xi[:, i, :]), 1).t() * Xv[:, i]).t() for i, emb in enumerate(self.fm_second_order_embeddings)]
-        except Exception as e:
-            print("ERROR:", e)
-            breakpoint()
-        # fm_second_order_emb_arr = [(emb(Xi[:, i]) * Xv[:, i]) for i, emb in enumerate(self.fm_second_order_embeddings)]
-        fm_sum_second_order_emb = sum(fm_second_order_emb_arr)
-        fm_sum_second_order_emb_square = fm_sum_second_order_emb * \
-            fm_sum_second_order_emb  # (x+y)^2
-        fm_second_order_emb_square = [
-            item*item for item in fm_second_order_emb_arr]
-        fm_second_order_emb_square_sum = sum(
-            fm_second_order_emb_square)  # x^2+y^2
-        fm_second_order = (fm_sum_second_order_emb_square -
-                           fm_second_order_emb_square_sum) * 0.5
+        # average term
+        fm_first_order_emb_arr = [(torch.sum(emb(Xi[:, i, :]), 1).t() * Xv[:, i]).t() for i, emb in enumerate(self.fm_first_order_embeddings)]
+        f1 = torch.cat(fm_first_order_emb_arr, 1)
+
+        # use 2xy = (x+y)^2 - (x^2 + y^2) reduce calculation
+        xv = torch.stack([(torch.sum(emb(Xi[:, i, :]), 1).t() * Xv[:, i]).t() for i, emb in enumerate(self.fm_second_order_embeddings)], dim=1)
+        s1 = torch.sum(xv,dim=1).pow(2.0)
+        s2 = torch.sum(xv.pow(2.0), dim=1)
+        f2 = 0.5 * (s1 - s2)
+        #self.s1 = s1
+        #self.s2 = s2
+
         """
             deep part
         """
-        deep_emb = torch.cat(fm_second_order_emb_arr, 1)
+        deep_emb = torch.flatten(xv, start_dim=1)
         deep_out = deep_emb
-        for i in range(1, self.hidden_dims + 1):
-            deep_out = getattr(self, 'linear_' + str(i))(deep_out)
+        for i in range(1,len(self.hidden_dims) + 1):
+            deep_out = F.relu(getattr(self, 'linear_' + str(i))(deep_out))
             deep_out = getattr(self, 'batchNorm_' + str(i))(deep_out)
             deep_out = getattr(self, 'dropout_' + str(i))(deep_out)
+
         """
             sum
         """
-        total_sum = torch.sum(fm_first_order, 1) + \
-                    torch.sum(fm_second_order, 1) + torch.sum(deep_out, 1) + self.bias
+        self.f1 = f1
+        self.f2 = f2
+        self.deep_out = deep_out
+        total_sum = torch.sum(f1, 1) + torch.sum(f2, 1) + torch.sum(deep_out, 1) + self.bias
         return total_sum
 
     def fit(self, loader_train, loader_val, optimizer, epochs=1, verbose=False, print_every=100):
@@ -148,20 +137,23 @@ class DeepFM(nn.Module):
         model = self.train().to(device=self.device)
         criterion = F.binary_cross_entropy_with_logits
 
-        for _ in range(epochs):
+        for epoch in range(epochs):
             for t, (xi, xv, y) in enumerate(loader_train):
                 xi = xi.to(device=self.device, dtype=self.dtype)
-                xv = xv.to(device=self.device, dtype=torch.float)
-                y = y.to(device=self.device, dtype=self.dtype)
+                xv = xv.to(device=self.device, dtype=torch.float32)
+                y = y.to(device=self.device, dtype=torch.float32)
                 
                 total = model(xi, xv)
                 loss = criterion(total, y)
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
+                if not torch.isnan(loss):
+                    optimizer.zero_grad()
+                    loss.backward()
+                    optimizer.step()
+                else:
+                    breakpoint()
 
                 if verbose and t % print_every == 0:
-                    print('Iteration %d, loss = %.4f' % (t, loss.item()))
+                    print('Epoch: %d, Iteration %d, loss = %.4f' % (epoch, t, loss.item()))
                     self.check_accuracy(loader_val, model)
                     print()
     
@@ -176,14 +168,18 @@ class DeepFM(nn.Module):
         with torch.no_grad():
             for xi, xv, y in loader:
                 xi = xi.to(device=self.device, dtype=self.dtype)  # move to device, e.g. GPU
-                xv = xv.to(device=self.device, dtype=self.dtype)
-                y = y.to(device=self.device, dtype=self.dtype)
+                xv = xv.to(device=self.device, dtype=torch.float32)
+                y = y.to(device=self.device, dtype=torch.float32)
                 total = model(xi, xv)
-                preds = (F.sigmoid(total) > 0.5)
+                preds = (torch.sigmoid(total) > 0.5).type(torch.float32)
                 num_correct += (preds == y).sum()
                 num_samples += preds.size(0)
-            acc = float(num_correct) / num_samples
-            print('Got %d / %d correct (%.2f%%)' % (num_correct, num_samples, 100 * acc))
+            try:
+                acc = float(num_correct) / num_samples
+                print('Got %d / %d correct (%.2f%%)' % (num_correct, num_samples, 100 * acc))
+            except ZeroDivisionError as e:
+                breakpoint()
+                print(e)
 
 
 
