@@ -72,6 +72,16 @@ class DeepFM(nn.Module):
             setattr(self, 'batchNorm_' + str(i), nn.BatchNorm1d(all_dims[i]))
             setattr(self, 'dropout_'+str(i), nn.Dropout(dropout[i-1]))
         self.avg_acc = None
+        self.init_weight()
+
+    def init_weight(self):
+        for m in self.modules():
+            if isinstance(m, nn.Linear):
+                nn.init.kaiming_normal_(m.weight, mode='fan_in')
+                nn.init.constant_(m.bias, 0)
+            if isinstance(m, nn.BatchNorm1d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
 
     def forward(self, Xi, Xv):
         """
@@ -117,6 +127,7 @@ class DeepFM(nn.Module):
         self.deep_out = deep_out
         total_sum = torch.sum(f1, 1) + torch.sum(f2, 1) + torch.sum(deep_out, 1) + self.bias
         return total_sum
+
 
     def l2_reg(self):
         reg_loss = torch.zeros(1, dtype=torch.float32, requires_grad=True)
