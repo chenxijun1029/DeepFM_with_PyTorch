@@ -93,13 +93,17 @@ class DeepFM(nn.Module):
         print(Xi.size())
         for num in Xi[:, 20, :][0]:
             if num > self.feature_sizes[20]:
-                print("index out")
+                print("index out", num, self.feature_sizes[20])
 
-        fm_first_order_emb_arr = [(torch.sum(emb(Xi[:, i, :]), 1).t() * Xv[:, i]).t() for i, emb in enumerate(self.fm_first_order_embeddings)]
-        # fm_first_order_emb_arr = [(emb(Xi[:, i]) * Xv[:, i])  for i, emb in enumerate(self.fm_first_order_embeddings)]
-        fm_first_order = torch.cat(fm_first_order_emb_arr, 1)
-        # use 2xy = (x+y)^2 - x^2 - y^2 reduce calculation
-        fm_second_order_emb_arr = [(torch.sum(emb(Xi[:, i, :]), 1).t() * Xv[:, i]).t() for i, emb in enumerate(self.fm_second_order_embeddings)]
+        try:
+            fm_first_order_emb_arr = [(torch.sum(emb(Xi[:, i, :]), 1).t() * Xv[:, i]).t() for i, emb in enumerate(self.fm_first_order_embeddings)]
+            # fm_first_order_emb_arr = [(emb(Xi[:, i]) * Xv[:, i])  for i, emb in enumerate(self.fm_first_order_embeddings)]
+            fm_first_order = torch.cat(fm_first_order_emb_arr, 1)
+            # use 2xy = (x+y)^2 - x^2 - y^2 reduce calculation
+            fm_second_order_emb_arr = [(torch.sum(emb(Xi[:, i, :]), 1).t() * Xv[:, i]).t() for i, emb in enumerate(self.fm_second_order_embeddings)]
+        except Exception as e:
+            print("ERROR:", e)
+            breakpoint()
         # fm_second_order_emb_arr = [(emb(Xi[:, i]) * Xv[:, i]) for i, emb in enumerate(self.fm_second_order_embeddings)]
         fm_sum_second_order_emb = sum(fm_second_order_emb_arr)
         fm_sum_second_order_emb_square = fm_sum_second_order_emb * \

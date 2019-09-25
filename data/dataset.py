@@ -20,7 +20,7 @@ class CriteoDataset(Dataset):
         self.root = root
         self.train = train
 
-        if not self._check_exists:
+        if not self._check_exists():
             raise RuntimeError('Dataset not found.')
 
         if self.train:
