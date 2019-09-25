@@ -166,7 +166,7 @@ class DeepFM(nn.Module):
         num_samples = 0
         model.eval()  # set model to evaluation mode
         with torch.no_grad():
-            for xi, xv, y in loader:
+            for xi, xv, y in enumerate(loader):
                 xi = xi.to(device=self.device, dtype=self.dtype)  # move to device, e.g. GPU
                 xv = xv.to(device=self.device, dtype=torch.float32)
                 y = y.to(device=self.device, dtype=torch.float32)
@@ -178,8 +178,8 @@ class DeepFM(nn.Module):
                 acc = float(num_correct) / num_samples
                 print('Got %d / %d correct (%.2f%%)' % (num_correct, num_samples, 100 * acc))
             except ZeroDivisionError as e:
-                breakpoint()
                 print(e)
+                return
 
 
 
