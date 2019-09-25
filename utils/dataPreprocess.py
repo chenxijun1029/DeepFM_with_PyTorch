@@ -90,6 +90,8 @@ def preprocess(datadir, outdir, train_file='train.txt', test_file='test_file', c
     Each of the 26 categorical features are one-hot encoded and all the one-hot
     vectors are combined into one sparse binary vector.
     """
+
+    print("building dictionary....")
     dists = ContinuousFeatureGenerator(len(continous_features))
     dists.build(os.path.join(datadir, train_file), continous_features)
 
@@ -97,10 +99,6 @@ def preprocess(datadir, outdir, train_file='train.txt', test_file='test_file', c
     dicts.build(os.path.join(datadir, train_file), categorial_features, cutoff=cutoff)
 
     dict_sizes = dicts.dicts_sizes()
-    categorial_feature_offset = [0]
-    for i in range(1, len(categorial_features)):
-        offset = categorial_feature_offset[i - 1] + dict_sizes[i - 1]
-        categorial_feature_offset.append(offset)
 
     with open(os.path.join(outdir, 'feature_sizes.txt'), 'w') as feature_sizes:
         sizes = [1] * len(continous_features) + dict_sizes
@@ -110,6 +108,7 @@ def preprocess(datadir, outdir, train_file='train.txt', test_file='test_file', c
     random.seed(0)
 
     # Saving the data used for training.
+    print("transforming {}".format(train_file))
     with open(os.path.join(outdir, train_file), 'w') as out_train:
         with open(os.path.join(datadir, train_file), 'r') as f:
             for line in f:
@@ -123,7 +122,6 @@ def preprocess(datadir, outdir, train_file='train.txt', test_file='test_file', c
                     continous_vals.append("{0:.6f}".format(val).rstrip('0').rstrip('.'))
                 categorial_vals = []
                 for i in range(0, len(categorial_features)):
-                    #val = dicts.gen(i, features[categorial_features[i]]) + categorial_feature_offset[i]
                     val = dicts.gen(i, features[categorial_features[i]])
                     categorial_vals.append(str(val))
 
@@ -132,6 +130,7 @@ def preprocess(datadir, outdir, train_file='train.txt', test_file='test_file', c
                 out_train.write(','.join([continous_vals, categorial_vals, label]) + '\n')
                     
 
+    print("transforming {}".format(test_file))
     with open(os.path.join(outdir, test_file), 'w') as out:
         with open(os.path.join(datadir, test_file), 'r') as f:
             for line in f:
@@ -143,7 +142,6 @@ def preprocess(datadir, outdir, train_file='train.txt', test_file='test_file', c
                     continous_vals.append("{0:.6f}".format(val).rstrip('0').rstrip('.'))
                 categorial_vals = []
                 for i in range(0, len(categorial_features)):
-                    #val = dicts.gen(i, features[categorial_features[ i] - 1]) + categorial_feature_offset[i]
                     val = dicts.gen(i, features[categorial_features[i]])
                     categorial_vals.append(str(val))
 
@@ -152,5 +150,5 @@ def preprocess(datadir, outdir, train_file='train.txt', test_file='test_file', c
                 out.write(','.join([continous_vals, categorial_vals]) + '\n')
 
 if __name__ == "__main__":
-    #preprocess('./data/raw', './data', train_file='train_large.txt', test_file='test_large.txt')
-    preprocess('./data/raw', './data', train_file='train.txt', test_file='test.txt', cutoff=0)
+    preprocess('./data/raw', './data', train_file='train_large.txt', test_file='test_large.txt')
+    #preprocess('./data/raw', './data', train_file='train.txt', test_file='test.txt', cutoff=0)
