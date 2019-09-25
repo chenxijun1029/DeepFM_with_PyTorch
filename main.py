@@ -24,12 +24,12 @@ seed = 20170705
 np.random.seed(seed)
 torch.manual_seed(seed)
 torch.cuda.manual_seed(seed)
-#train_file = "train_large.txt"
-#test_file = "test_large.txt"
-#feature_sizes_file = "feature_sizes_large.txt"
-train_file = "train.txt"
-test_file = "test.txt"
-feature_sizes_file = "feature_sizes.txt"
+train_file = "train_large.txt"
+test_file = "test_large.txt"
+feature_sizes_file = "feature_sizes_large.txt"
+#train_file = "train.txt"
+#test_file = "test.txt"
+#feature_sizes_file = "feature_sizes.txt"
 
 # load data
 train_data = CriteoDataset('./data', train=True, train_file=train_file)
