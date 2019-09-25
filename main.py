@@ -26,10 +26,10 @@ torch.manual_seed(seed)
 torch.cuda.manual_seed(seed)
 train_file = "train_large.txt"
 test_file = "test_large.txt"
-feature_size_file = "feature_sizes_large.txt"
+feature_sizes_file = "feature_sizes_large.txt"
 #train_file = "train.txt"
 #test_file = "test.txt"
-#feature_size_file = "feature_sizes.txt"
+#feature_sizes_file = "feature_sizes.txt"
 
 # load data
 train_data = CriteoDataset('./data', train=True, train_file=train_file)
@@ -41,7 +41,7 @@ train_idx, valid_idx = split_train_and_valid(train_data)
 loader_train = DataLoader(train_data, batch_size=128, sampler=sampler.SubsetRandomSampler(train_idx), num_workers=7)
 loader_val = DataLoader(train_data, batch_size=1000, sampler=sampler.SubsetRandomSampler(valid_idx), num_workers=7)
 
-feature_sizes = np.loadtxt('./data/feature_sizes.txt', delimiter=',')
+feature_sizes = np.loadtxt('./data/{}'.format(feature_sizes_file), delimiter=',')
 feature_sizes = [int(x) for x in feature_sizes]
 print(feature_sizes)
 
