@@ -75,6 +75,7 @@ class DeepFM(nn.Module):
             setattr(self, 'linear_'+str(i), nn.Linear(all_dims[i-1], all_dims[i]))
             setattr(self, 'batchNorm_' + str(i), nn.BatchNorm1d(all_dims[i]))
             setattr(self, 'dropout_'+str(i), nn.Dropout(dropout[i-1]))
+        self.avg_acc = None
 
     def forward(self, Xi, Xv):
         """
@@ -136,6 +137,7 @@ class DeepFM(nn.Module):
         """
         model = self.train().to(device=self.device)
         criterion = F.binary_cross_entropy_with_logits
+        self.iter_val = iter(loader_val)
 
         for epoch in range(epochs):
             for t, (xi, xv, y) in enumerate(loader_train):
@@ -154,7 +156,8 @@ class DeepFM(nn.Module):
 
                 if verbose and t % print_every == 0:
                     print('Epoch: %d, Iteration %d, loss = %.4f' % (epoch, t, loss.item()))
-                    self.check_accuracy(loader_val, model)
+                    self.check_accuracy(self.iter_val, model)
+                    model.train()
                     print()
     
     def check_accuracy(self, loader, model):
@@ -166,17 +169,22 @@ class DeepFM(nn.Module):
         num_samples = 0
         model.eval()  # set model to evaluation mode
         with torch.no_grad():
-            for xi, xv, y in enumerate(loader):
-                xi = xi.to(device=self.device, dtype=self.dtype)  # move to device, e.g. GPU
-                xv = xv.to(device=self.device, dtype=torch.float32)
-                y = y.to(device=self.device, dtype=torch.float32)
-                total = model(xi, xv)
-                preds = (torch.sigmoid(total) > 0.5).type(torch.float32)
-                num_correct += (preds == y).sum()
-                num_samples += preds.size(0)
+            xi, xv, y = next(loader)
+            xi = xi.to(device=self.device, dtype=self.dtype)  # move to device, e.g. GPU
+            xv = xv.to(device=self.device, dtype=torch.float32)
+            y = y.to(device=self.device, dtype=torch.float32)
+            total = model(xi, xv)
+            preds = (torch.sigmoid(total) > 0.5).type(torch.float32)
+            num_correct += (preds == y).sum()
+            num_samples += preds.size(0)
+
             try:
                 acc = float(num_correct) / num_samples
-                print('Got %d / %d correct (%.2f%%)' % (num_correct, num_samples, 100 * acc))
+                if self.avg_acc is None:
+                    self.avg_acc = acc
+                else:
+                    self.avg_acc = 0.9 * self.avg_acc + 0.1 * acc
+                print('Got %d / %d correct (%.2f%%), avg_acc=%.2f%%' % (num_correct, num_samples, 100 * acc, self.avg_acc))
             except ZeroDivisionError as e:
                 print(e)
                 return
