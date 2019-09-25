@@ -36,8 +36,8 @@ train_data = CriteoDataset('./data', train=True, train_file=train_file)
 train_idx, valid_idx = split_train_and_valid(train_data)
 
 # loader
-loader_train = DataLoader(train_data, batch_size=1024, sampler=sampler.SubsetRandomSampler(train_idx), num_workers=4)
-loader_val = DataLoader(train_data, batch_size=1000, sampler=sampler.SubsetRandomSampler(valid_idx), num_workers=4)
+loader_train = DataLoader(train_data, batch_size=128, sampler=sampler.SubsetRandomSampler(train_idx), num_workers=7)
+loader_val = DataLoader(train_data, batch_size=1000, sampler=sampler.SubsetRandomSampler(valid_idx), num_workers=7)
 
 feature_sizes = np.loadtxt('./data/feature_sizes.txt', delimiter=',')
 feature_sizes = [int(x) for x in feature_sizes]
@@ -45,5 +45,5 @@ print(feature_sizes)
 
 model = DeepFM(feature_sizes, use_cuda=True)
 #optimizer = optim.Adam(model.parameters(), lr=1e-4, weight_decay=0.0)
-optimizer = radam.RAdam(model.parameters(), lr=1e-4, weight_decay=0.0)
+optimizer = radam.RAdam(model.parameters(), lr=1e-3, weight_decay=0.0)
 model.fit(loader_train, loader_val, optimizer, epochs=10, verbose=True, print_every=1000)

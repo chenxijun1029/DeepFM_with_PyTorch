@@ -61,22 +61,32 @@ class ContinuousFeatureGenerator:
 
     def __init__(self, num_feature):
         self.num_feature = num_feature
+        self.min_val = [99999] * num_feature
+        self.max_val = [-99999] * num_feature
 
     def build(self, datafile, continous_features):
         with open(datafile, 'r') as f:
             for line in f:
-                features = line.rstrip('\n').split('\t')
+                data_fields = line.rstrip('\n').split('\t')
+                features = data_fields[1:]
                 for i in range(0, self.num_feature):
                     val = features[continous_features[i]]
                     if val != '':
                         val = int(val)
                         if val > continous_clip[i]:
                             val = continous_clip[i]
+                        if self.min_val[i] > val:
+                            self.min_val[i] = val
+                        if self.max_val[i] < val:
+                            self.max_val[i] = val
 
     def gen(self, idx, val):
         if val == '':
             return 0.0
-        val = float(val)
+        eps = 1e-6
+        min_v = self.min_val[idx]
+        max_v = self.max_val[idx]
+        val = (float(val) - min_v) / (max_v - min_v + eps)
         return val
 
 

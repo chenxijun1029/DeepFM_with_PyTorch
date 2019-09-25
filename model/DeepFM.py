@@ -91,11 +91,13 @@ class DeepFM(nn.Module):
 
         # use 2xy = (x+y)^2 - (x^2 + y^2) reduce calculation
         xv = torch.stack([(torch.sum(emb(Xi[:, i, :]), 1).t() * Xv[:, i]).t() for i, emb in enumerate(self.fm_second_order_embeddings)], dim=1)
+        xv = F.normalize(xv,dim=1)
         s1 = torch.sum(xv,dim=1).pow(2.0)
         s2 = torch.sum(xv.pow(2.0), dim=1)
         f2 = 0.5 * (s1 - s2)
-        #self.s1 = s1
-        #self.s2 = s2
+        self.xv = xv
+        self.s1 = s1
+        self.s2 = s2
 
         """
             deep part
@@ -116,6 +118,19 @@ class DeepFM(nn.Module):
         total_sum = torch.sum(f1, 1) + torch.sum(f2, 1) + torch.sum(deep_out, 1) + self.bias
         return total_sum
 
+    def l2_reg(self):
+        reg_loss = 0
+        for param in self.parameters():
+            reg_loss += torch.norm(param)
+        return reg_loss
+
+    def l1_reg(self):
+        reg_loss = 0
+        for varname, param in self.named_parameters():
+            reg_loss += torch.abs(param).sum()
+        return reg_loss
+
+
     def fit(self, loader_train, loader_val, optimizer, epochs=1, verbose=False, print_every=100):
         """
         Training a model and valid accuracy.
@@ -132,8 +147,10 @@ class DeepFM(nn.Module):
             load input data
         """
         model = self.train().to(device=self.device)
-        criterion = F.binary_cross_entropy_with_logits
+        criterion = torch.nn.BCEWithLogitsLoss()
+        #criterion = nn.MSELoss()
         self.iter_val = iter(loader_val)
+        #l2_loss = self.l2_reg()
 
         for epoch in range(epochs):
             for t, (xi, xv, y) in enumerate(loader_train):
@@ -142,15 +159,20 @@ class DeepFM(nn.Module):
                 y = y.to(device=self.device, dtype=torch.float32)
                 
                 total = model(xi, xv)
-                loss = criterion(total, y)
+                reg = self.l1_reg()
+                err = criterion(total, y)
+                loss = err + 1e-3*reg
                 if not torch.isnan(loss):
                     optimizer.zero_grad()
                     loss.backward()
                     optimizer.step()
 
                 if verbose and t % print_every == 0:
-                    print('Epoch: %d, Iteration %d, loss = %.4f' % (epoch, t, loss.item()))
-                    self.check_accuracy(self.iter_val, model)
+                    print('Epoch: %d, Iteration %d, loss = %.4f,%.4f,%.4f' % (epoch, t, loss.item(), reg.item(), err.item()))
+                    try:
+                        self.check_accuracy(self.iter_val, model)
+                    except StopIteration:
+                        self.iter_val = iter(loader_val)
                     model.train()
                     print()
     
