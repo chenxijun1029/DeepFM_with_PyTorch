@@ -83,7 +83,7 @@ class ContinuousFeatureGenerator:
 # @click.command("preprocess")
 # @click.option("--datadir", type=str, help="Path to raw criteo dataset")
 # @click.option("--outdir", type=str, help="Path to save the processed data")
-def preprocess(datadir, outdir):
+def preprocess(datadir, outdir, num_train_sample = 10000, num_test_sample = 10000):
     """
     All the 13 integer features are normalzied to continous values and these
     continous features are combined into one vecotr with dimension 13.
@@ -98,11 +98,6 @@ def preprocess(datadir, outdir):
         os.path.join(datadir, 'train.txt'), categorial_features, cutoff=200)
 
     dict_sizes = dicts.dicts_sizes()
-    categorial_feature_offset = [0]
-    for i in range(1, len(categorial_features)):
-        offset = categorial_feature_offset[i - 1] + dict_sizes[i - 1]
-        categorial_feature_offset.append(offset)
-
     with open(os.path.join(outdir, 'feature_sizes.txt'), 'w') as feature_sizes:
         sizes = [1] * len(continous_features) + dict_sizes
         sizes = [str(i) for i in sizes]
@@ -113,7 +108,7 @@ def preprocess(datadir, outdir):
     # Saving the data used for training.
     with open(os.path.join(outdir, 'train.txt'), 'w') as out_train:
         with open(os.path.join(datadir, 'train.txt'), 'r') as f:
-            for line in f:
+            for line in f.readlines()[:num_train_sample]:
                 features = line.rstrip('\n').split('\t')
 
                 continous_vals = []
@@ -124,7 +119,7 @@ def preprocess(datadir, outdir):
                 categorial_vals = []
                 for i in range(0, len(categorial_features)):
                     val = dicts.gen(i, features[categorial_features[
-                        i]]) + categorial_feature_offset[i]
+                        i]])
                     categorial_vals.append(str(val))
 
                 continous_vals = ','.join(continous_vals)
@@ -135,7 +130,7 @@ def preprocess(datadir, outdir):
 
     with open(os.path.join(outdir, 'test.txt'), 'w') as out:
         with open(os.path.join(datadir, 'test.txt'), 'r') as f:
-            for line in f:
+            for line in f.readlines()[:num_test_sample]:
                 features = line.rstrip('\n').split('\t')
 
                 continous_vals = []
@@ -146,7 +141,7 @@ def preprocess(datadir, outdir):
                 categorial_vals = []
                 for i in range(0, len(categorial_features)):
                     val = dicts.gen(i, features[categorial_features[
-                        i] - 1]) + categorial_feature_offset[i]
+                        i] - 1])
                     categorial_vals.append(str(val))
 
                 continous_vals = ','.join(continous_vals)

@@ -27,12 +27,12 @@ class DeepFM(nn.Module):
     """
 
     def __init__(self, feature_sizes, embedding_size=4,
-                 hidden_dims=[32, 32], num_classes=10, dropout=[0.5, 0.5], 
+                 hidden_dims=[32, 32], num_classes=1, dropout=[0.5, 0.5], 
                  use_cuda=True, verbose=False):
         """
         Initialize a new network
 
-        Inputs:
+        Inputs: 
         - feature_size: A list of integer giving the size of features for each field.
         - embedding_size: An integer giving size of feature embedding.
         - hidden_dims: A list of integer giving the size of each hidden layer.
@@ -89,18 +89,10 @@ class DeepFM(nn.Module):
         """
             fm part
         """
-        emb = self.fm_first_order_embeddings[20]
-        print(Xi.size())
-        for num in Xi[:, 20, :][0]:
-            if num > self.feature_sizes[20]:
-                print("index out")
 
         fm_first_order_emb_arr = [(torch.sum(emb(Xi[:, i, :]), 1).t() * Xv[:, i]).t() for i, emb in enumerate(self.fm_first_order_embeddings)]
-        # fm_first_order_emb_arr = [(emb(Xi[:, i]) * Xv[:, i])  for i, emb in enumerate(self.fm_first_order_embeddings)]
         fm_first_order = torch.cat(fm_first_order_emb_arr, 1)
-        # use 2xy = (x+y)^2 - x^2 - y^2 reduce calculation
         fm_second_order_emb_arr = [(torch.sum(emb(Xi[:, i, :]), 1).t() * Xv[:, i]).t() for i, emb in enumerate(self.fm_second_order_embeddings)]
-        # fm_second_order_emb_arr = [(emb(Xi[:, i]) * Xv[:, i]) for i, emb in enumerate(self.fm_second_order_embeddings)]
         fm_sum_second_order_emb = sum(fm_second_order_emb_arr)
         fm_sum_second_order_emb_square = fm_sum_second_order_emb * \
             fm_sum_second_order_emb  # (x+y)^2
@@ -115,7 +107,7 @@ class DeepFM(nn.Module):
         """
         deep_emb = torch.cat(fm_second_order_emb_arr, 1)
         deep_out = deep_emb
-        for i in range(1, self.hidden_dims + 1):
+        for i in range(1, len(self.hidden_dims) + 1):
             deep_out = getattr(self, 'linear_' + str(i))(deep_out)
             deep_out = getattr(self, 'batchNorm_' + str(i))(deep_out)
             deep_out = getattr(self, 'dropout_' + str(i))(deep_out)
@@ -126,7 +118,7 @@ class DeepFM(nn.Module):
                     torch.sum(fm_second_order, 1) + torch.sum(deep_out, 1) + self.bias
         return total_sum
 
-    def fit(self, loader_train, loader_val, optimizer, epochs=1, verbose=False, print_every=100):
+    def fit(self, loader_train, loader_val, optimizer, epochs=100, verbose=False, print_every=100):
         """
         Training a model and valid accuracy.
 
@@ -148,7 +140,7 @@ class DeepFM(nn.Module):
             for t, (xi, xv, y) in enumerate(loader_train):
                 xi = xi.to(device=self.device, dtype=self.dtype)
                 xv = xv.to(device=self.device, dtype=torch.float)
-                y = y.to(device=self.device, dtype=self.dtype)
+                y = y.to(device=self.device, dtype=torch.float)
                 
                 total = model(xi, xv)
                 loss = criterion(total, y)
@@ -172,8 +164,8 @@ class DeepFM(nn.Module):
         with torch.no_grad():
             for xi, xv, y in loader:
                 xi = xi.to(device=self.device, dtype=self.dtype)  # move to device, e.g. GPU
-                xv = xv.to(device=self.device, dtype=self.dtype)
-                y = y.to(device=self.device, dtype=self.dtype)
+                xv = xv.to(device=self.device, dtype=torch.float)
+                y = y.to(device=self.device, dtype=torch.bool)
                 total = model(xi, xv)
                 preds = (F.sigmoid(total) > 0.5)
                 num_correct += (preds == y).sum()

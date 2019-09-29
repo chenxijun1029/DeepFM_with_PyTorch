@@ -4,6 +4,8 @@ import pandas as pd
 import numpy as np
 import os
 
+continous_features = 13
+
 class CriteoDataset(Dataset):
     """
     Custom dataset class for Criteo dataset in order to use efficient 
@@ -34,13 +36,27 @@ class CriteoDataset(Dataset):
     def __getitem__(self, idx):
         if self.train:
             dataI, targetI = self.train_data[idx, :], self.target[idx]
-            Xi = torch.from_numpy(dataI.astype(np.int32)).unsqueeze(-1)
-            Xv = torch.from_numpy(np.ones_like(dataI))
+            # index of continous features are zero
+            Xi_coutinous = np.zeros_like(dataI[:continous_features])
+            Xi_categorial = dataI[continous_features:]
+            Xi = torch.from_numpy(np.concatenate((Xi_coutinous, Xi_categorial)).astype(np.int32)).unsqueeze(-1)
+            
+            # value of categorial features are one (one hot features)
+            Xv_categorial = np.ones_like(dataI[continous_features:])
+            Xv_coutinous = dataI[:continous_features]
+            Xv = torch.from_numpy(np.concatenate((Xv_coutinous, Xv_categorial)).astype(np.int32))
             return Xi, Xv, targetI
         else:
             dataI = self.test_data.iloc[idx, :]
-            Xi = torch.from_numpy(dataI.astype(np.int32)).unsqueeze(-1)
-            Xv = torch.from_numpy(np.ones_like(dataI))
+            # index of continous features are one
+            Xi_coutinous = np.ones_like(dataI[:continous_features])
+            Xi_categorial = dataI[continous_features:]
+            Xi = torch.from_numpy(np.concatenate((Xi_coutinous, Xi_categorial)).astype(np.int32)).unsqueeze(-1)
+            
+            # value of categorial features are one (one hot features)
+            Xv_categorial = np.ones_like(dataI[continous_features:])
+            Xv_coutinous = dataI[:continous_features]
+            Xv = torch.from_numpy(np.concatenate((Xv_coutinous, Xv_categorial)).astype(np.int32))
             return Xi, Xv
 
     def __len__(self):

@@ -9,7 +9,7 @@ from model.DeepFM import DeepFM
 from data.dataset import CriteoDataset
 
 # 900000 items for training, 10000 items for valid, of all 1000000 items
-Num_train = 900000
+Num_train = 9000
 
 # load data
 train_data = CriteoDataset('./data', train=True)
@@ -17,7 +17,7 @@ loader_train = DataLoader(train_data, batch_size=100,
                           sampler=sampler.SubsetRandomSampler(range(Num_train)))
 val_data = CriteoDataset('./data', train=True)
 loader_val = DataLoader(val_data, batch_size=100,
-                        sampler=sampler.SubsetRandomSampler(range(Num_train, 1000000)))
+                        sampler=sampler.SubsetRandomSampler(range(Num_train, 10000)))
 
 feature_sizes = np.loadtxt('./data/feature_sizes.txt', delimiter=',')
 feature_sizes = [int(x) for x in feature_sizes]
