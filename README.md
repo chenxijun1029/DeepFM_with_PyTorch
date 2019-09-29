@@ -8,7 +8,7 @@ A PyTorch implementation of DeepFM for CTR prediction problem.
 
 2. Generate a preprocessed dataset.
 
-        ./data/dataPreprocess.py
+        ./utils/dataPreprocess.py
 
 3. Train a model and predict.
 
