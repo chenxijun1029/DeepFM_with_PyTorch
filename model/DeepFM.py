@@ -49,7 +49,7 @@ class DeepFM(nn.Module):
         self.hidden_dims = hidden_dims
         self.num_classes = num_classes
         self.dtype = torch.long
-        self.bias = torch.nn.Parameter(torch.randn(1))
+        self.bias = torch.nn.Parameter(torch.randn(1)).to(self.device)
         """
             check if use cuda
         """
